@@ -1,0 +1,18 @@
+{
+  "format-check": {
+    "BeforeTool": [
+      {
+        "type": "command",
+        "command": "python3 scripts/format_check.py"
+      }
+    ]
+  },
+  "test-reminder": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 scripts/remind_tests.py"
+      }
+    ]
+  }
+}

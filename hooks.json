@@ -1,0 +1,17 @@
+{
+  "agy-setup-audit-protected-push": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/guard_protected_push.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

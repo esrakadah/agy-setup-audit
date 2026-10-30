@@ -1,0 +1,7 @@
+# One phrase per line. Lines starting with # are ignored.
+# \uXXXX escapes are decoded; the first entry is the em-dash.
+—
+delve
+seamless
+leverage
+cutting-edge

@@ -1,0 +1,11 @@
+{
+  "style-gate": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 style-gate/stop_style_gate.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

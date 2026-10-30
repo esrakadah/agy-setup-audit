@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "dart": {
+      "command": "dart",
+      "args": ["mcp-server"]
+    },
+    "issue-tracker": {
+      "command": "npx",
+      "args": ["-y", "example-issue-tracker-mcp"],
+      "env": {
+        "TRACKER_API_TOKEN": "replace-me-with-an-env-var"
+      }
+    }
+  }
+}

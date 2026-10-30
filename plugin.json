@@ -1,0 +1,17 @@
+{
+  "name": "agy-setup-audit",
+  "displayName": "Antigravity Setup Audit",
+  "version": "0.1.0",
+  "description": "Finds the silent failures in an Antigravity setup (cut-off rules, skills that never load, duplicate MCP servers, broken hooks, reviewers that can write) and adds a guard against pushes to protected branches.",
+  "author": {
+    "name": "Esra Kadah",
+    "url": "https://esratech.com"
+  },
+  "homepage": "https://github.com/esrakadah/agy-setup-audit",
+  "repository": "https://github.com/esrakadah/agy-setup-audit",
+  "suggestedPrompts": [
+    "Audit my Antigravity setup and explain each finding",
+    "Why is one of my skills not loading?",
+    "Review my hooks.json and custom agents with the setup critic"
+  ]
+}

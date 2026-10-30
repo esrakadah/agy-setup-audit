@@ -1,7 +1,18 @@
-# One phrase per line. Lines starting with # are ignored.
-# \uXXXX escapes are decoded; the first entry is the em-dash.
-—
+# One banned phrase or character per line. Unicode escapes (\u2014) are supported.
+# Single words match common inflections (e.g. delve -> delving, leverage -> leveraging).
+\u2014
 delve
-seamless
 leverage
+seamless
+robust
+dynamic
+transformative
+empower
+unlock
+landscape
+realm
+tapestry
+embark
+bridge the gap
+synergy
 cutting-edge

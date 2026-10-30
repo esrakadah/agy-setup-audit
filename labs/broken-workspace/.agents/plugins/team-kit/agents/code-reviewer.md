@@ -7,6 +7,7 @@ tools:
   - veiw_file
   - grep_search
   - write_to_file
+  - send_message
 ---
 
 # Code reviewer

@@ -44,8 +44,9 @@ class ProtectedPushGuardTest(unittest.TestCase):
         with mock.patch.object(guard, "current_branch", return_value="main"):
             self.assertEqual(guard.decide(command_payload("git status --short")), {"decision": "allow"})
             self.assertEqual(guard.decide(command_payload("git push origin feature/audit")), {"decision": "allow"})
+            self.assertEqual(guard.decide(command_payload("git push --delete origin feature/old")), {"decision": "allow"})
 
-    def test_denies_explicit_push_to_protected_branch(self) -> None:
+    def test_denies_explicit_push_and_delete_on_protected_branch(self) -> None:
         with mock.patch.object(guard, "current_branch", return_value="feature/audit"):
             for command in (
                 "git push origin main",
@@ -53,16 +54,25 @@ class ProtectedPushGuardTest(unittest.TestCase):
                 "git push origin HEAD:main",
                 "git push origin +HEAD:refs/heads/main",
                 "pytest && git push -u origin main",
+                "GITLAB_HOST=gitlab.chrg.it git push origin main",
+                "env git -C/tmp/repo push origin main",
+                "git push --repo=origin main",
+                "git push --repo origin main",
+                "(cd /tmp/repo && git push origin main)",
+                'sh -c "git push origin main"',
+                "git push --delete origin main",
+                "git push origin :main",
             ):
                 with self.subTest(command=command):
                     decision = guard.decide(command_payload(command))
                     self.assertEqual(decision["decision"], "deny")
                     self.assertIn("protected branch", decision["reason"])
 
-    def test_denies_bare_push_when_checked_out_on_main(self) -> None:
+    def test_denies_bare_push_and_push_options_when_checked_out_on_main(self) -> None:
         with mock.patch.object(guard, "current_branch", return_value="main"):
             self.assertEqual(guard.decide(command_payload("git push"))["decision"], "deny")
             self.assertEqual(guard.decide(command_payload("git push origin HEAD"))["decision"], "deny")
+            self.assertEqual(guard.decide(command_payload("git push -o ci.skip origin"))["decision"], "deny")
 
     def test_allows_bare_push_on_feature_branch(self) -> None:
         with mock.patch.object(guard, "current_branch", return_value="feature/audit"):
@@ -77,7 +87,9 @@ class ProtectedPushGuardTest(unittest.TestCase):
         with mock.patch.object(guard, "current_branch", return_value="feature/audit"):
             for command in (
                 "git push --force-with-lease origin feature/audit",
+                "git push --force-with-lease=feature/audit:abc123 origin feature/audit",
                 "git push -f origin feature/audit",
+                "git push -uf origin feature/audit",
                 "git push origin +feature/audit",
             ):
                 with self.subTest(command=command):
@@ -108,18 +120,23 @@ class StopStyleGateTest(unittest.TestCase):
         transcript.write_text(json.dumps(step) + "\n", encoding="utf-8")
         return transcript
 
-    def test_flags_em_dash_and_banned_words_in_prose_on_first_stop(self) -> None:
+    def test_flags_em_dash_and_inflected_banned_words_on_normal_stop(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            transcript = self.write_transcript(Path(temp_dir), "We will delve into the configuration.")
-            decision = style_gate.decide({"executionNum": 1, "transcriptPath": str(transcript)})
-            self.assertEqual(decision["decision"], "continue")
-            self.assertIn("delve", decision["reason"])
+            for sample in (
+                "We are delving into the configuration.",
+                "These synergies across teams help.",
+                "Rich tapestries of rules.",
+                "Bridging the gap between tools.",
+                "One rule \u2014 never truncate.",
+            ):
+                with self.subTest(sample=sample):
+                    transcript = self.write_transcript(Path(temp_dir), sample)
+                    decision = style_gate.decide(
+                        {"executionNum": 1, "terminationReason": "NO_TOOL_CALL", "transcriptPath": str(transcript)}
+                    )
+                    self.assertEqual(decision["decision"], "continue")
 
-            em_dash_transcript = self.write_transcript(Path(temp_dir), "One rule \u2014 never truncate.")
-            em_dash_decision = style_gate.decide({"executionNum": 1, "transcriptPath": str(em_dash_transcript)})
-            self.assertEqual(em_dash_decision["decision"], "continue")
-
-    def test_ignores_code_blocks_and_second_execution(self) -> None:
+    def test_ignores_code_blocks_second_execution_and_user_cancel(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             transcript = self.write_transcript(
                 Path(temp_dir),
@@ -133,6 +150,12 @@ class StopStyleGateTest(unittest.TestCase):
             flagged = self.write_transcript(Path(temp_dir), "Let us delve in.")
             self.assertEqual(
                 style_gate.decide({"executionNum": 2, "transcriptPath": str(flagged)}),
+                {"decision": "allow"},
+            )
+            self.assertEqual(
+                style_gate.decide(
+                    {"executionNum": 1, "terminationReason": "USER_CANCELED", "transcriptPath": str(flagged)}
+                ),
                 {"decision": "allow"},
             )
 

@@ -27,7 +27,7 @@ python3 skills/agy-setup-audit/scripts/agy_audit.py \
   --gemini-home labs/empty-gemini-home
 ```
 
-Expected output (`7` errors, `5` warnings, `1` note):
+Expected output (`7` errors, `6` warnings, `1` note):
 
 ```text
 Antigravity setup audit: ~/Documents/esradev/agy-setup-audit/labs/broken-workspace
@@ -35,7 +35,7 @@ Antigravity setup audit: ~/Documents/esradev/agy-setup-audit/labs/broken-workspa
 [agents]
   ERROR .agents/plugins/team-kit/agents/code-reviewer.md
         model: gemini-pro is not a documented value.
-        fix: Use one of: flash, inherit, pro.
+        fix: Use one of: flash, flash_lite, inherit, pro.
   WARN  .agents/plugins/team-kit/agents/code-reviewer.md
         Tool names this audit does not recognise: veiw_file. A misspelled tool name can hang the subagent.
         fix: Check each name against the tools your Antigravity version lists.
@@ -57,7 +57,7 @@ Antigravity setup audit: ~/Documents/esradev/agy-setup-audit/labs/broken-workspa
         fix: Add one guard for the action you would least like to undo (see templates/).
 [mcp]
   ERROR .agents/mcp_config.json
-        The same server is started more than once ('dart' in .agents/mcp_config.json, 'dart-mcp-server' in .agents/plugins/team-kit/mcp.json); every tool is injected twice.
+        The same server is started more than once ('dart' in .agents/mcp_config.json, 'dart-mcp-server' in .agents/plugins/team-kit/mcp_config.json); every tool is injected twice.
         fix: Keep one copy (the plugin's, if a plugin ships it) and remove the others.
   WARN  .agents/mcp_config.json
         Server 'issue-tracker' has a literal value for env 'TRACKER_API_TOKEN'.
@@ -68,7 +68,7 @@ Antigravity setup audit: ~/Documents/esradev/agy-setup-audit/labs/broken-workspa
         fix: Add frontmatter with trigger: one of always_on, glob, manual, model_decision.
   WARN  .agents/rules/team/naming.md
         1 rule file(s) in subfolders of .agents/rules; only files directly in rules/ are scanned.
-        fix: Move them up a level, or register the subfolder in rules.json.
+        fix: Move them directly into rules/, or include them from a top-level rule with @[label](path).
 [skills]
   ERROR .agents/skills/release-notes/SKILL.md:3
         'description:' is a plain one-line value containing ': ', which strict YAML rejects; the skill is dropped without a warning.
@@ -76,8 +76,11 @@ Antigravity setup audit: ~/Documents/esradev/agy-setup-audit/labs/broken-workspa
   WARN  .agents/release-checklist/SKILL.md
         On disk but outside every discovery path; Antigravity never loads it.
         fix: Move it to skills/<name>/SKILL.md, or add its parent folder to .agents/skills.json.
+  WARN  .agents/skills.json
+        Entry path '.' resolves to the project root (.), not .agents.
+        fix: Use '.agents' to scan .agents/, or '.agents/skills'.
 
-Errors: 7, warnings: 5, notes: 1. Nothing was changed.
+Errors: 7, warnings: 6, notes: 1. Nothing was changed.
 ```
 
 ### 3. Install as an Antigravity plugin
@@ -87,27 +90,32 @@ agy plugin validate --strict /path/to/agy-setup-audit
 agy plugin install /path/to/agy-setup-audit
 ```
 
+Or copy/symlink the repository into `.agents/plugins/agy-setup-audit` (workspace) or `~/.gemini/config/plugins/agy-setup-audit` (global). **Restart Antigravity** after installing a new plugin directory so its skills, agent, and hook are discovered on startup.
+
 Installing the plugin registers three customizations:
 
 - **Skill `agy-setup-audit`** (`skills/agy-setup-audit/SKILL.md`): runs the audit script on your workspace, groups findings by severity, and asks before applying any fix.
-- **Subagent `setup-critic`** (`agents/setup-critic.md`): read-only reviewer restricted to `view_file`, `list_dir`, `grep_search`, `find_by_name`, and `read_url_content`.
+- **Subagent `setup-critic`** (`agents/setup-critic.md`): read-only reviewer restricted to `view_file`, `list_dir`, `grep_search`, `find_by_name`, `read_url_content`, and `send_message`.
 - **Hook `agy-setup-audit-protected-push`** (`hooks.json` + `scripts/guard_protected_push.py`): `PreToolUse` guard on `run_command` that denies `git push` to `main` or `master` (override with `AGY_PROTECTED_BRANCHES="main,release"`), denies `git push --all` / `--mirror`, and returns `force_ask` on force-pushes to feature branches. Fails open if the payload cannot be parsed so a hook error never locks the editor.
 
 ## What the audit checks
 
 | Area | Check | Severity | Source |
 | :--- | :--- | :--- | :--- |
+| `plugins` | Duplicate plugin `name` across enabled plugins (second plugin is dropped silently) or invalid JSONC in `plugin.json` | `ERROR` | Built-in docs |
+| `plugins` | Workspace `plugin.json` with URL/absolute `logo`, `suggestedPrompts` > 3, or undocumented top-level keys | `WARN` | Built-in docs |
 | `rules` | Rule file over 24,000 bytes after `@[...](...)` includes (or over 80% of cap) | `ERROR` / `WARN` | Built-in docs |
+| `rules` | Always-on rules exceeding the 20,000-token (~80,000-byte) aggregate rules budget (excess rules demoted to path pointers) | `WARN` | Built-in docs |
 | `rules` | Rule in `rules/*.md` missing valid `trigger:` (`always_on`, `model_decision`, `glob`, `manual`) or required `description` / `globs` | `ERROR` | Built-in docs |
-| `rules` | Standalone `GEMINI.md` / `AGENTS.md` with YAML frontmatter, or rules nested in `rules/<subfolder>/` without `rules.json` | `WARN` | Built-in docs |
+| `rules` | Standalone `GEMINI.md` / `AGENTS.md` with YAML frontmatter, or rules nested in `rules/<subfolder>/` | `WARN` | Built-in docs |
 | `skills` | Missing YAML frontmatter, missing `description`, or invalid `skills.json` | `ERROR` | Built-in docs |
 | `skills` | Unquoted `: ` on a single-line frontmatter field (dropped by strict YAML parser) | `ERROR` | Observed runtime |
-| `skills` | `SKILL.md` outside discovery paths, broken `skills.json` entry (paths resolve against repo root, not `.agents/`), or duplicate skill names | `WARN` | Observed runtime |
-| `mcp` | Same server command or URL configured in two places (for example global `mcp_config.json` and an installed plugin) | `ERROR` | Observed runtime |
-| `mcp` | Literal secret in `env`, or cached server under `~/.gemini/*/mcp/` not found in any config file this audit reads | `WARN` | Mete's MCP post + observed |
+| `skills` | `SKILL.md` outside discovery paths (including `inherits`), `"path": "."` trap or missing `skills.json` entry, or duplicate skill names | `WARN` | Built-in docs + observed |
+| `mcp` | Same server command/URL configured in two places, or legacy HTTP+SSE endpoint ending in `/sse` | `ERROR` | Built-in docs + observed |
+| `mcp` | Duplicate MCP server name across configs, `mcp.json` instead of `mcp_config.json`, literal secret in `env`, or cached server under `~/.gemini/*/mcp/` not found in any config file this audit reads | `WARN` | Built-in docs + Mete's MCP post |
 | `hooks` | Unknown hook event, missing matcher group on `PreToolUse` / `PostToolUse`, `hooks/hooks.json` inside a native plugin instead of plugin root, or missing script file | `ERROR` | Built-in docs + Mete's hooks post |
 | `agents` | Missing `name` / `description`, undocumented `model:` value, or unquoted `: ` in frontmatter | `ERROR` | Built-in docs |
-| `agents` | Reviewer / critic / auditor agent with write tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`, `run_command`, `delete_file`) or unrecognised tool names | `WARN` | Observed runtime |
+| `agents` | Reviewer / critic / auditor agent with write tools or unrecognised tool names | `WARN` | Built-in docs + observed |
 
 ## Copy-paste templates (`templates/`)
 
@@ -117,8 +125,8 @@ If you do not want the full plugin, copy only the pieces you need into `.agents/
 - `templates/rules/release-process.md`: `model_decision` rule where only the description loads up front.
 - `templates/skills/release-notes/SKILL.md`: skill template using `description: >-` so colons never break YAML parsing.
 - `templates/skills.json`: manifest template showing repo-root-relative paths and `exclude` filters.
-- `templates/agents/code-reviewer.md`: read-only reviewer subagent with a strict 4-tool allowlist.
-- `templates/style-gate/`: `Stop` hook (`stop_style_gate.py`, `banned_phrases.txt`, `hooks.json`) that sends a reply back once (`executionNum == 1`) if prose outside code blocks contains an em-dash or a banned filler word.
+- `templates/agents/code-reviewer.md`: read-only reviewer subagent with a strict 5-tool allowlist (`view_file`, `list_dir`, `grep_search`, `find_by_name`, `send_message`).
+- `templates/style-gate/`: `Stop` hook (`stop_style_gate.py`, `banned_phrases.txt`, `hooks.json`) that sends a reply back once (`executionNum == 1` on `terminationReason == "NO_TOOL_CALL"`) if prose outside code blocks contains an em-dash or a banned filler word.
 
 ## Tests
 

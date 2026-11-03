@@ -30,3 +30,29 @@ python3 skills/agy-setup-audit/scripts/agy_audit.py \
 | `skills` | `.agents/skills/release-notes/SKILL.md:3` | `ERROR` | Unquoted `: ` on a single-line `description:` |
 | `skills` | `.agents/release-checklist/SKILL.md` | `WARN` | Skill folder outside every discovery path |
 | `skills` | `.agents/skills.json` | `WARN` | `"path": "."` resolves to the project root, not `.agents/` |
+
+## Exercises
+
+Work on a copy so the lab stays broken for the next person:
+
+```bash
+cp -R labs/broken-workspace /tmp/agy-lab && cd /tmp/agy-lab && git init -q
+```
+
+Run the audit after each step (`python3 <repo>/skills/agy-setup-audit/scripts/agy_audit.py --workspace . --gemini-home <repo>/labs/empty-gemini-home`) and watch the count drop.
+
+1. **Get a skill back.** Rewrite the `description:` in `.agents/skills/release-notes/SKILL.md` as a `>-` block scalar. Then make `release-checklist` load: move it under `.agents/skills/`, or fix `.agents/skills.json` so its entry reaches `.agents`.
+2. **Rescue a rule.** Change `trigger: alwaysOn` to `always_on`, and move `rules/team/naming.md` up one level.
+3. **One Dart server, not two.** Delete the `dart` entry from `.agents/mcp_config.json` and keep the plugin's. Replace the literal token with a wrapper script that reads it from the environment.
+4. **Make the hooks run.** Rename `BeforeTool` to `PreToolUse` inside a `run_command` matcher group, and create both scripts the workspace hooks call under `.agents/scripts/`. Then move the plugin's `hooks/hooks.json` to the plugin root. Run the audit: now that the plugin hook is loaded, its own bug shows up (`guard.py` does not exist). Create it too. Fixing one silent failure often reveals the next.
+5. **Disarm the reviewer.** In `code-reviewer.md`, fix `veiw_file`, remove `write_to_file`, and set `model: inherit`.
+
+After step 5 the audit prints `No findings.` and exits with `0`.
+
+6. **Break the cap on purpose.** Push `AGENTS.md` past 24,000 bytes:
+
+   ```bash
+   yes "- Prefer const constructors and small widgets." | head -n 600 >> AGENTS.md
+   ```
+
+   The audit now reports `28,272 bytes after includes; Antigravity drops the last 4,272 bytes every turn.` That is the failure that hid my most important rule.

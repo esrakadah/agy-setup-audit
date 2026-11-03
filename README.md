@@ -30,7 +30,7 @@ python3 skills/agy-setup-audit/scripts/agy_audit.py \
 Expected output (`7` errors, `6` warnings, `1` note):
 
 ```text
-Antigravity setup audit: ~/Documents/esradev/agy-setup-audit/labs/broken-workspace
+Antigravity setup audit: <repo>/labs/broken-workspace
 
 [agents]
   ERROR .agents/plugins/team-kit/agents/code-reviewer.md
@@ -112,7 +112,8 @@ Installing the plugin registers three customizations:
 | `skills` | Unquoted `: ` on a single-line frontmatter field (dropped by strict YAML parser) | `ERROR` | Observed runtime |
 | `skills` | `SKILL.md` outside discovery paths (including `inherits`), `"path": "."` trap or missing `skills.json` entry, or duplicate skill names | `WARN` | Built-in docs + observed |
 | `mcp` | Same server command/URL configured in two places, or legacy HTTP+SSE endpoint ending in `/sse` | `ERROR` | Built-in docs + observed |
-| `mcp` | Duplicate MCP server name across configs, `mcp.json` instead of `mcp_config.json`, literal secret in `env`, or cached server under `~/.gemini/*/mcp/` not found in any config file this audit reads | `WARN` | Built-in docs + Mete's MCP post |
+| `mcp` | Duplicate MCP server name across configs, literal secret in `env`, or cached server under `~/.gemini/*/mcp/` not found in any config file this audit reads | `WARN` | Built-in docs + Mete's MCP post |
+| `mcp` | Plugin ships `mcp.json` without `mcp_config.json` (the web docs and the built-in plugin skill name different files) | `INFO` | Both docs, conflicting |
 | `hooks` | Unknown hook event, missing matcher group on `PreToolUse` / `PostToolUse`, `hooks/hooks.json` inside a native plugin instead of plugin root, or missing script file | `ERROR` | Built-in docs + Mete's hooks post |
 | `agents` | Missing `name` / `description`, undocumented `model:` value, or unquoted `: ` in frontmatter | `ERROR` | Built-in docs |
 | `agents` | Reviewer / critic / auditor agent with write tools or unrecognised tool names | `WARN` | Built-in docs + observed |

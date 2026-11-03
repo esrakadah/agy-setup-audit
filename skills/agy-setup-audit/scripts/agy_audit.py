@@ -631,10 +631,11 @@ class Audit:
                 if not root_mcp_config.is_file():
                     self.report(
                         "mcp",
-                        WARN,
+                        INFO,
                         legacy_mcp_json,
-                        "Native plugins load MCP servers from mcp_config.json; mcp.json is not documented for native plugins.",
-                        f"Rename it to {self.short_path(root_mcp_config)}.",
+                        "The docs disagree on this file name: antigravity.google/docs/mcp says plugins use mcp.json, "
+                        "the built-in plugin skill uses mcp_config.json.",
+                        f"If its servers do not appear, rename it to {self.short_path(root_mcp_config)}.",
                     )
         documented_resolved = {path.resolve() for _, path in documented_configs if path.is_file()}
         product_configs = [

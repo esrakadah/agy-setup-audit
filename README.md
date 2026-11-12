@@ -2,7 +2,7 @@
 
 Read-only setup auditor, `PreToolUse` branch guard, read-only critic agent, and copy-paste templates for Google Antigravity.
 
-Companion repository to [I Audited My Own Antigravity Setup: 5 Silent Failures and How I Fixed Them](https://esratech.com), built on Mete Atamel's [Where does Antigravity look for configurations?](https://atamel.dev/posts/2026/08-21_where_agy_configuration_summary/) series and the built-in Antigravity customization reference.
+Companion repository to the article *I Audited My Own Antigravity Setup: 5 Silent Failures and How I Fixed Them* (not published yet), built on Mete Atamel's [Where does Antigravity look for configurations?](https://atamel.dev/posts/2026/08-21_where_agy_configuration_summary/) series and the built-in Antigravity customization reference.
 
 Zero third-party dependencies (Python 3.9+ standard library only). The audit script never writes, moves, or deletes any file.
 
